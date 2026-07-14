@@ -1,0 +1,124 @@
+// Prisma schema for BibiTool
+// Database: Supabase PostgreSQL
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String?        @unique
+  emailVerified DateTime?
+  name          String?
+  avatarUrl     String?
+  password      String?        // Hashed password (for credentials auth, null for OAuth-only users)
+  apiKey        String?        @unique
+  credits       Int            @default(120)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  summaries     Summary[]
+  subscriptions Subscription[]
+  apiUsages     ApiUsage[]
+  apiKeys       APIKey[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Summary {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url         String
+  platform    String
+  videoId     String
+  title       String?
+  coverUrl    String?
+  duration    Int?
+  subtitle    String?  @db.Text
+  summary     String?  @db.Text
+  mode        String   @default("brief")
+  model       String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([platform, videoId])
+}
+
+model Subscription {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String    @default("free")
+  status    String    @default("active")
+  startAt   DateTime  @default(now())
+  expireAt  DateTime?
+
+  @@unique([userId])
+}
+
+model ApiUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  duration  Int
+  tokens    Int?
+
+  @@index([userId, date])
+}
+
+model APIKey {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String   // "openai" | "deepseek" | "anthropic"
+  encryptedKey String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
