@@ -1,10 +1,10 @@
 // Prisma client singleton — lazily initialized
 //
 // Prisma v7+ requires either `adapter` or `accelerateUrl` in its constructor.
-// For Phase 1, we use a lazy proxy so the client is only created at runtime
-// when the first database call is made, not at module import / build time.
+// We use @prisma/adapter-pg to connect directly to Supabase PostgreSQL.
 
 import { PrismaClient } from "@/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -21,8 +21,9 @@ function getClient(): PrismaClient {
     )
   }
 
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const client = new (PrismaClient as any)({ errorFormat: "colorless" })
+  const client = new (PrismaClient as any)({ adapter, errorFormat: "colorless" })
 
   if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = client
