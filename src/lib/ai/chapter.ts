@@ -24,7 +24,6 @@ export async function detectChaptersAI(
   }
 
   // For long videos, work with chunked summaries
-  const chunks = chunkSubtitles(subtitles, { maxTokens: 2000, overlap: 100 })
   return detectChaptersFromText(subtitles)
 }
 

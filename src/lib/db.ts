@@ -1,10 +1,11 @@
 // Prisma client singleton — lazily initialized
 //
-// Prisma v7+ requires either `adapter` or `accelerateUrl` in its constructor.
-// For Phase 1, we use a lazy proxy so the client is only created at runtime
-// when the first database call is made, not at module import / build time.
+// Prisma v7 requires a Driver Adapter for the `prisma-client` generator.
+// We use @prisma/adapter-pg with the pg Pool for direct PostgreSQL connections.
 
 import { PrismaClient } from "@/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
+import pg from "pg"
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -21,8 +22,11 @@ function getClient(): PrismaClient {
     )
   }
 
+  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
+  const adapter = new PrismaPg(pool)
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const client = new (PrismaClient as any)({ errorFormat: "colorless" })
+  const client = new (PrismaClient as any)({ adapter, errorFormat: "colorless" })
 
   if (process.env.NODE_ENV !== "production") {
     globalForPrisma.prisma = client
@@ -39,8 +43,6 @@ function buildProxy(): PrismaClient {
     {},
     {
       get(_, prop: string | symbol) {
-        // Special case: client doesn't exist yet — return a noop so the
-        // Next.js build can still collect page data without hitting the DB.
         if (typeof process !== "undefined" && process.env.NEXT_PHASE === "phase-production-build") {
           if (prop === "then") return undefined
           return () => undefined

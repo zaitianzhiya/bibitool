@@ -180,7 +180,7 @@ export async function resolveVideo(url: string): Promise<VideoInfo> {
   }
 
   // 7. Normalize subtitles
-  const normalizedSubtitles = normalizeSubtitles(subtitles, platform)
+  const normalizedSubtitles = normalizeSubtitles(subtitles)
 
   // 8. Build result (include subtitleSource for UI feedback)
   const result: VideoInfo = {

@@ -6,7 +6,7 @@
 //   2. Danmaku protobuf fallback — tries new protobuf API when XML returns empty
 //   3. Clear subtitleSource tracking
 
-import { SubtitleItem, VideoInfo, Platform } from "@/types"
+import { SubtitleItem, Platform } from "@/types"
 import { expandB23Url } from "./bilibili-shortlink"
 import { fetchWithRetry } from "./bilibili-cookie"
 

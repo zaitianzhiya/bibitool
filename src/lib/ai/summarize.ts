@@ -7,7 +7,7 @@ import { streamText, generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { deepseek } from "@ai-sdk/deepseek"
 import { SummarizeOptions, SubtitleItem } from "@/types"
-import { chunkSubtitles, flattenChunks } from "./chunk"
+import { chunkSubtitles } from "./chunk"
 import {
   buildSystemPrompt,
   buildUserPrompt,
@@ -66,7 +66,7 @@ export async function* summarizeStream(options: SummarizeOptions) {
         for await (const chunk of result.textStream) { yield chunk }
       } else {
         const localResults = await Promise.all(
-          chunks.map((chunk, i) => generateLocalSummary(chunk, aiModel, i, chunks.length))
+          chunks.map((chunk, i) => generateLocalSummary(chunk, aiModel, i))
         )
         const validLocals = localResults.filter((r): r is string => r !== null)
         if (validLocals.length === 0) {
@@ -94,7 +94,7 @@ export async function* summarizeStream(options: SummarizeOptions) {
   }
 }
 
-async function generateLocalSummary(chunkText: string, model: any, _index: number, _total: number): Promise<string | null> {
+async function generateLocalSummary(chunkText: string, model: any, _index: number): Promise<string | null> {
   try {
     const result = await generateText({ model, prompt: buildLocalSummaryPrompt(chunkText), maxOutputTokens: 300, temperature: 0.3 })
     return result.text.trim()

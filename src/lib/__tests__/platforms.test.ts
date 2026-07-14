@@ -1,5 +1,6 @@
 // Tests for platform detection and video ID extraction
 import { describe, it, expect } from "vitest"
+import { Platform } from "../../types"
 import { detectPlatform, extractVideoId } from "../platforms"
 
 describe("detectPlatform", () => {
@@ -43,30 +44,24 @@ describe("detectPlatform", () => {
 describe("extractVideoId", () => {
   it("extracts B站 BV号", () => {
     const id = extractVideoId(
-      "https://www.bilibili.com/video/BV1GJ411x7h7",
-      "bilibili"
-    )
+      "https://www.bilibili.com/video/BV1GJ411x7h7", Platform.Bilibili)
     expect(id).toBe("BV1GJ411x7h7")
   })
 
   it("extracts B站 AV号", () => {
     const id = extractVideoId(
-      "https://www.bilibili.com/video/av123456",
-      "bilibili"
-    )
+      "https://www.bilibili.com/video/av123456", Platform.Bilibili)
     expect(id).toBe("av123456")
   })
 
   it("extracts YouTube ID", () => {
     const id = extractVideoId(
-      "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "youtube"
-    )
+      "https://www.youtube.com/watch?v=dQw4w9WgXcQ", Platform.YouTube)
     expect(id).toBe("dQw4w9WgXcQ")
   })
 
   it("returns path for local files", () => {
-    const id = extractVideoId("/tmp/video.mp4", "local")
+    const id = extractVideoId("/tmp/video.mp4", Platform.LocalFile)
     expect(id).toBe("/tmp/video.mp4")
   })
 
