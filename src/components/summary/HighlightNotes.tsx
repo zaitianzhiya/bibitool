@@ -35,6 +35,7 @@ export function useHighlights() {
   const [highlights, setHighlights] = useState<Highlight[]>([])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: hydrate from localStorage on mount
     setHighlights(loadHighlights())
   }, [])
 

@@ -58,6 +58,7 @@ export default function RegisterPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="space-y-4">
             {/* GitHub OAuth */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- OAuth sign-up must be a full-page navigation */}
             <a
               href="/api/auth/signin/github"
               className="flex w-full items-center justify-center gap-3 rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors"

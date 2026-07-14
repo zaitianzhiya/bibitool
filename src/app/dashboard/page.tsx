@@ -81,6 +81,7 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: load data from API on mount
     loadData()
   }, [loadData])
 

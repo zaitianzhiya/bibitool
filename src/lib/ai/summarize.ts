@@ -3,7 +3,7 @@
 // Long videos: chunk -> parallel local summaries -> global merge streaming
 // Phase 4: DeepSeek multi-provider support with 3-tier fallback
 
-import { streamText, generateText } from "ai"
+import { streamText, generateText, LanguageModelV2 } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { deepseek } from "@ai-sdk/deepseek"
 import { SummarizeOptions, SubtitleItem } from "@/types"
@@ -94,7 +94,7 @@ export async function* summarizeStream(options: SummarizeOptions) {
   }
 }
 
-async function generateLocalSummary(chunkText: string, model: any, _index: number, _total: number): Promise<string | null> {
+async function generateLocalSummary(chunkText: string, model: LanguageModelV2, _index: number, _total: number): Promise<string | null> {
   try {
     const result = await generateText({ model, prompt: buildLocalSummaryPrompt(chunkText), maxOutputTokens: 300, temperature: 0.3 })
     return result.text.trim()
