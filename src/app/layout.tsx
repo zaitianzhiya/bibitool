@@ -1,6 +1,7 @@
 // Root layout
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import "./globals.css"
@@ -69,6 +70,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <SpeedInsights />
       </body>
     </html>
   )
