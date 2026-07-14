@@ -1,18 +1,19 @@
 // Tests for platform detection and video ID extraction
 import { describe, it, expect } from "vitest"
 import { detectPlatform, extractVideoId } from "../platforms"
+import { Platform } from "@/types"
 
 describe("detectPlatform", () => {
   it("detects B站 URLs", () => {
     expect(
       detectPlatform("https://www.bilibili.com/video/BV1234567890")
-    ).toBe("bilibili")
+    ).toBe(Platform.Bilibili)
     expect(
       detectPlatform("https://b23.tv/abc123")
-    ).toBe("bilibili")
+    ).toBe(Platform.Bilibili)
     expect(
       detectPlatform("https://space.bilibili.com/123/video")
-    ).toBe("bilibili")
+    ).toBe(Platform.Bilibili)
   })
 
   it("detects YouTube URLs", () => {
@@ -20,17 +21,17 @@ describe("detectPlatform", () => {
       detectPlatform(
         "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
       )
-    ).toBe("youtube")
+    ).toBe(Platform.YouTube)
     expect(
       detectPlatform("https://youtu.be/dQw4w9WgXcQ")
-    ).toBe("youtube")
+    ).toBe(Platform.YouTube)
   })
 
   it("detects local file paths", () => {
     expect(detectPlatform("C:\\Users\\test\\video.mp4")).toBe(
-      "local"
+      Platform.LocalFile
     )
-    expect(detectPlatform("file:///tmp/video.mp4")).toBe("local")
+    expect(detectPlatform("file:///tmp/video.mp4")).toBe(Platform.LocalFile)
   })
 
   it("returns null for unsupported URLs", () => {
@@ -44,7 +45,7 @@ describe("extractVideoId", () => {
   it("extracts B站 BV号", () => {
     const id = extractVideoId(
       "https://www.bilibili.com/video/BV1GJ411x7h7",
-      "bilibili"
+      Platform.Bilibili
     )
     expect(id).toBe("BV1GJ411x7h7")
   })
@@ -52,7 +53,7 @@ describe("extractVideoId", () => {
   it("extracts B站 AV号", () => {
     const id = extractVideoId(
       "https://www.bilibili.com/video/av123456",
-      "bilibili"
+      Platform.Bilibili
     )
     expect(id).toBe("av123456")
   })
@@ -60,13 +61,13 @@ describe("extractVideoId", () => {
   it("extracts YouTube ID", () => {
     const id = extractVideoId(
       "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "youtube"
+      Platform.YouTube
     )
     expect(id).toBe("dQw4w9WgXcQ")
   })
 
   it("returns path for local files", () => {
-    const id = extractVideoId("/tmp/video.mp4", "local")
+    const id = extractVideoId("/tmp/video.mp4", Platform.LocalFile)
     expect(id).toBe("/tmp/video.mp4")
   })
 

@@ -167,11 +167,11 @@ export async function listApiKeys(userId: string): Promise<ProviderKey[]> {
       where: { userId },
       select: { provider: true, encryptedKey: true },
     })
-    const map = new Map(rows.map((r) => [r.provider, r.encryptedKey]))
+    const map = new Map(rows.map((r: { provider: string; encryptedKey: string }) => [r.provider, r.encryptedKey]))
 
     return providers.map((provider) => {
       const enc = map.get(provider)
-      const preview = enc ? maskKey(decryptKey(enc) || "") : undefined
+      const preview = enc ? maskKey(decryptKey(enc) ?? "") : undefined
       return { provider, configured: !!enc, preview }
     })
   } catch {
