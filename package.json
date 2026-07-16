@@ -20,6 +20,7 @@
     "@sentry/nextjs": "^10.65.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "@vercel/speed-insights": "^2.0.0",
     "ai": "^7.0.22",
     "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
