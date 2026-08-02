@@ -1,8 +1,9 @@
 "use client"
 
-// VideoInfoCard — displays video metadata and subtitle preview
+// VideoInfoCard — displays video metadata and full subtitle content
 // Shown after successful URL submission on the summarize page
 
+import { useState } from "react"
 import { VideoInfo, SubtitleItem, Platform } from "@/types"
 
 interface VideoInfoCardProps {
@@ -52,17 +53,17 @@ function platformColor(platform: Platform): string {
   }
 }
 
-function subtitlePreviewLines(subtitles: SubtitleItem[]): SubtitleItem[] {
-  if (!subtitles || subtitles.length === 0) return []
-  // Show first 5 lines as preview
-  return subtitles.slice(0, 5)
-}
-
 export function VideoInfoCard({
   videoInfo,
   stats,
   subLoading,
 }: VideoInfoCardProps) {
+  const [showAllSubtitles, setShowAllSubtitles] = useState(false)
+  const subtitles = videoInfo.subtitles || []
+  const PREVIEW_COUNT = 30
+  const hasMore = subtitles.length > PREVIEW_COUNT
+  const displayLines = showAllSubtitles ? subtitles : subtitles.slice(0, PREVIEW_COUNT)
+
   return (
     <div className="mt-10 rounded-2xl border border-zinc-200 bg-white shadow-sm overflow-hidden dark:border-zinc-800 dark:bg-zinc-950">
       {/* Header with thumbnail and title */}
@@ -98,37 +99,50 @@ export function VideoInfoCard({
           </div>
           <div className="mt-2 flex items-center gap-4 text-xs text-zinc-400">
             <span>{stats.lineCount} 行字幕</span>
+            <span>总时长: {formatDuration(stats.totalDuration)}</span>
             <span>语言: {stats.language === "zh" ? "中文" : stats.language === "en" ? "English" : stats.language}</span>
           </div>
         </div>
       </div>
 
-      {/* Subtitle preview */}
+      {/* Full subtitle content */}
       <div className="border-t border-zinc-100 dark:border-zinc-800">
         <div className="px-6 py-4">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-            字幕预览
-            {subLoading && (
-              <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
-            )}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
+              字幕内容 ({stats.lineCount} 行)
+              {subLoading && (
+                <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+              )}
+            </h3>
+            <div className="flex items-center gap-2">
+              {hasMore && !showAllSubtitles && (
+                <span className="text-xs text-zinc-400">
+                  显示前 {PREVIEW_COUNT} 行
+                </span>
+              )}
+              {hasMore && (
+                <button
+                  onClick={() => setShowAllSubtitles(!showAllSubtitles)}
+                  className="rounded-md border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  {showAllSubtitles ? "收起" : `展开全部 (${stats.lineCount} 行)`}
+                </button>
+              )}
+            </div>
+          </div>
           {stats.lineCount > 0 ? (
-            <div className="mt-3 space-y-2">
-              {subtitlePreviewLines(videoInfo.subtitles || []).map((line, i) => (
-                <div key={i} className="flex gap-3 text-sm">
-                  <span className="flex-shrink-0 font-mono text-xs tabular-nums text-zinc-400 mt-0.5">
+            <div className="mt-3 space-y-1.5 max-h-[500px] overflow-y-auto">
+              {displayLines.map((line, i) => (
+                <div key={i} className="flex gap-3 text-sm py-1 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded px-1 transition-colors">
+                  <span className="flex-shrink-0 font-mono text-xs tabular-nums text-zinc-400 mt-0.5 w-14 text-right">
                     {formatDuration(line.start)}
                   </span>
-                  <span className="text-zinc-700 dark:text-zinc-300 line-clamp-1">
+                  <span className="text-zinc-700 dark:text-zinc-300">
                     {line.text}
                   </span>
                 </div>
               ))}
-              {stats.lineCount > 5 && (
-                <p className="text-xs text-zinc-400 pt-1">
-                  ... 还有 {stats.lineCount - 5} 行字幕
-                </p>
-              )}
             </div>
           ) : (
             <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">

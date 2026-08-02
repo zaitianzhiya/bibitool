@@ -3,19 +3,38 @@
 // Body: { url: string, mode: "brief" | "detailed" }
 // Response: text/event-stream (ReadableStream SSE)
 //
-// Pipeline: URL → resolveVideo → check cache → summarizeStream → SSE → cache result
+// Pipeline: URL → rate limit → quota → resolveVideo → check cache → summarizeStream → SSE → cache result
 
 import { NextRequest, NextResponse } from "next/server"
 import { resolveVideo } from "@/lib/platforms"
 import { summarizeStream } from "@/lib/ai/summarize"
 import { cache } from "@/lib/cache"
-import { routeModel } from "@/lib/ai/router"
-import { anyApiKeyAvailable } from "@/lib/api-keys"
+import { anyApiKeyAvailable, resolveApiKey } from "@/lib/api-keys"
 import { auth } from "@/lib/auth"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
+import { checkQuota, consumeQuota } from "@/lib/quota"
 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
+
+    // Rate limiting — per-user if authenticated, per-IP otherwise
+    const rateLimit = await checkRateLimit(session?.user?.id, getClientIp(request))
+    if (rateLimit) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMITED",
+            message: `请求过于频繁，请 ${rateLimit.retryAfter} 秒后重试`,
+          },
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfter) },
+        }
+      )
+    }
+
     const body = await request.json()
     const { url, mode = "brief" } = body
 
@@ -39,6 +58,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Quota check for authenticated users
+    if (session?.user?.id) {
+      const quota = await checkQuota(session.user.id)
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error: {
+              code: "QUOTA_EXCEEDED",
+              message: "额度已用完，请等待下月重置或升级套餐",
+            },
+          },
+          { status: 402 }
+        )
+      }
+    }
+
     // Check for AI API key (user key or env var) — any provider counts
     const hasKey = await anyApiKeyAvailable(session?.user?.id)
     if (!hasKey) {
@@ -54,6 +89,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Inject user's stored keys and determine active provider
+    let activeProvider: "openai" | "deepseek" = "openai"
+    if (session?.user?.id) {
+      const providers = ["openai", "deepseek", "anthropic"] as const
+      const envMap = { openai: "OPENAI_API_KEY", deepseek: "DEEPSEEK_API_KEY", anthropic: "ANTHROPIC_API_KEY" }
+      for (const p of providers) {
+        const key = await resolveApiKey(session.user.id, p)
+        if (key) {
+          process.env[envMap[p]] = key
+          if (p === "deepseek") activeProvider = "deepseek"
+          else if (p === "openai" && activeProvider !== "deepseek") activeProvider = "openai"
+        }
+      }
+    }
+
+    const model = activeProvider === "deepseek" ? "deepseek-chat" : "gpt-4o-mini"
+
+    // Build model descriptor for summarizeStream (provider + model ID)
+    const modelDescriptor = activeProvider === "deepseek"
+      ? { provider: "deepseek" as const, modelId: "deepseek-chat" }
+      : { provider: "openai" as const, modelId: "gpt-4o-mini" }
+
     // Resolve video (fetch info + subtitles — cached by Phase 2)
     const videoInfo = await resolveVideo(url)
 
@@ -62,27 +119,19 @@ export async function POST(request: NextRequest) {
         {
           error: {
             code: "NO_SUBTITLES",
-            message:
-              "该视频没有可用的字幕，无法生成总结。建议使用弹幕模式或等待 Phase 3 Whisper 集成。",
+            message: "该视频没有可用的字幕，无法生成总结。",
           },
         },
         { status: 400 }
       )
     }
 
-    // Determine model
-    const { model } = routeModel(mode as "brief" | "detailed")
-
     // Check summary cache
     const cachedSummary = await cache.getSummary(
-      videoInfo.platform,
-      videoInfo.videoId,
-      mode,
-      model
+      videoInfo.platform, videoInfo.videoId, mode, modelDescriptor.modelId
     )
 
     if (cachedSummary) {
-      // Return cached summary as SSE stream (single chunk)
       const encoder = new TextEncoder()
       const stream = new ReadableStream({
         start(controller) {
@@ -91,7 +140,6 @@ export async function POST(request: NextRequest) {
           controller.close()
         },
       })
-
       return new NextResponse(stream, {
         headers: {
           "Content-Type": "text/event-stream",
@@ -112,36 +160,30 @@ export async function POST(request: NextRequest) {
           for await (const chunk of summarizeStream({
             subtitles: videoInfo.subtitles!,
             mode: mode as "brief" | "detailed",
-            model,
+            provider: modelDescriptor.provider,
+            model: modelDescriptor.modelId,
           })) {
             fullText += chunk
             controller.enqueue(encoder.encode(`data: ${chunk}\n\n`))
           }
-
-          // Send completion signal
           controller.enqueue(encoder.encode("data: [DONE]\n\n"))
 
-          // Cache the full summary for future requests
+          // Cache the full summary
           cache
-            .setSummary(
-              videoInfo.platform,
-              videoInfo.videoId,
-              mode,
-              model,
-              fullText
-            )
+            .setSummary(videoInfo.platform, videoInfo.videoId, mode, modelDescriptor.modelId, fullText)
             .catch((err) => console.warn("Failed to cache summary:", err))
+
+          // Deduct quota after successful generation
+          if (session?.user?.id) {
+            consumeQuota(session.user.id, videoInfo.duration)
+              .catch((err) => console.warn("Failed to deduct quota:", err))
+          }
 
           controller.close()
         } catch (err) {
           console.error("Summary generation error:", err)
-          const msg =
-            err instanceof Error ? err.message : "AI 总结生成失败"
-          controller.enqueue(
-            encoder.encode(
-              `data: {"error":"${msg.replace(/"/g, '\\"')}"}\n\n`
-            )
-          )
+          const msg = err instanceof Error ? err.message : "AI 总结生成失败"
+          controller.enqueue(encoder.encode(`data: {"error":"${msg.replace(/"/g, '\\"')}"}\n\n`))
           controller.close()
         }
       },
@@ -157,9 +199,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (err) {
     console.error("Summarize API error:", err)
-    const message =
-      err instanceof Error ? err.message : "AI 总结生成失败，请稍后重试"
-
+    const message = err instanceof Error ? err.message : "AI 总结生成失败，请稍后重试"
     return NextResponse.json(
       { error: { code: "SUMMARIZE_FAILED", message } },
       { status: 500 }

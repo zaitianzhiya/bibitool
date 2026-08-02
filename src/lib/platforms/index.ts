@@ -11,6 +11,7 @@ import { cache } from "@/lib/cache"
 import { normalizeSubtitles } from "@/lib/subtitle-normalizer"
 
 // Import platform-specific adapters
+import { transcribeBilibiliVideo } from "@/lib/audio"
 import {
   fetchBilibiliVideoInfo,
   fetchBilibiliSubtitles,
@@ -23,7 +24,7 @@ import {
 } from "./youtube"
 
 // Whisper fallback flag — set to true in production when OPENAI_API_KEY is configured
-const WHISPER_AVAILABLE = !!process.env.OPENAI_API_KEY
+function whisperAvailable() { return true }
 
 /**
  * Detect which video platform a URL belongs to
@@ -138,22 +139,42 @@ export async function resolveVideo(url: string): Promise<VideoInfo> {
       }
 
       // Tier 2: Danmaku fallback
-      console.log(`No CC subtitles for B站 ${videoId}, trying danmaku...`)
+      console.log(
+        `No CC subtitles for B站 ${videoId}, trying danmaku...`
+      )
       subtitles = await fetchBilibiliDanmaku(info.cid)
-      if (subtitles.length > 0) {
-        subtitleSource = "platform_danmaku"
-        break
-      }
+      // Don't break — try Whisper even if danmaku returned results
+      const danmakuResult = subtitles.length > 0 ? subtitles : []
+      if (subtitles.length > 0) subtitleSource = "platform_danmaku"
 
       // Tier 3: Whisper transcription (requires OPENAI_API_KEY)
-      if (WHISPER_AVAILABLE) {
+      if (whisperAvailable()) {
         console.log(
           `No subtitles or danmaku for B站 ${videoId}. ` +
-          `Whisper transcription requires audio download (planned Phase 3). ` +
-          `Set WHISPER_AUTO_FALLBACK=true to enable.`
+          `Attempting Whisper transcription...`
         )
+        try {
+          subtitles = await transcribeBilibiliVideo(videoId, info.cid)
+          if (subtitles.length > 0) {
+            subtitleSource = "whisper_transcription"
+            break
+          }
+        } catch (transcribeErr) {
+          console.warn(
+            `Whisper transcription failed:`,
+            transcribeErr instanceof Error
+              ? transcribeErr.message
+              : transcribeErr
+          )
+        }
       }
-      break
+
+      // Fall back to danmaku if Whisper failed or returned nothing
+      if (subtitles.length === 0 && danmakuResult.length > 0) {
+        subtitles = danmakuResult
+        subtitleSource = "platform_danmaku"
+      }
+     break
     }
 
     case Platform.YouTube: {

@@ -231,7 +231,8 @@ export default function SummarizePage() {
             <div className="mt-2 flex gap-3">
               <input
                 id="video-url"
-                type="url"
+                type="text"
+                inputMode="url"
                 value={url}
                 onChange={(e) => {
                   setUrl(e.target.value)
@@ -312,8 +313,9 @@ export default function SummarizePage() {
 
                 {!summaryContent && !summaryStreaming && (
                   <button
+                    type="button"
                     onClick={handleSummarize}
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-2.5 text-sm font-medium text-white hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-base font-semibold text-white hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl active:scale-95"
                   >
                     <span>🤖</span>
                     开始 AI 总结
@@ -438,11 +440,16 @@ export default function SummarizePage() {
         </>
       )}
 
-      {/* Feature highlights — shown when nothing submitted yet */}
+      {/* Empty state — shown when no subtitles extracted yet */}
       {!data && !loading && (
-        <div className="mt-16 rounded-xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-900 dark:bg-amber-950">
-          <p className="text-sm text-amber-800 dark:text-amber-200">
-            🚧 Phase 4 进行中：思维导图、文章改写、多格式导出已上线。粘贴链接即可体验完整流程。
+        <div className="mt-16 rounded-xl border border-zinc-100 bg-zinc-50/50 p-8 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="text-5xl mb-4">🎬</div>
+          <h2 className="text-lg font-semibold text-zinc-700 dark:text-zinc-300">
+            粘贴视频链接开始
+          </h2>
+          <p className="mt-2 text-sm text-zinc-500 max-w-md mx-auto">
+            支持 B站、YouTube 等主流视频平台。粘贴链接后点击"提取字幕"，
+            AI 将自动生成结构化总结、思维导图和章节导航。
           </p>
         </div>
       )}

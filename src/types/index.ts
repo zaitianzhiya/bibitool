@@ -31,6 +31,7 @@ export type SummaryStatus = "pending" | "processing" | "done" | "error";
 export interface SummarizeOptions {
   subtitles: SubtitleItem[];
   mode: SummaryMode;
+  provider?: string;
   model?: string;
   customPrompt?: string;
 }

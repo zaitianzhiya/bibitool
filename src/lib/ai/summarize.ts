@@ -39,7 +39,7 @@ function subtitlesToPromptText(subtitles: SubtitleItem[]): string {
 const SHORT_VIDEO_TOKEN_THRESHOLD = 3000
 
 export async function* summarizeStream(options: SummarizeOptions) {
-  const { subtitles, mode, model: modelId } = options
+  const { subtitles, mode, provider, model: modelId } = options
 
   if (!subtitles || subtitles.length === 0) {
     yield "[no-subtitles] No subtitles available for summary."
@@ -49,7 +49,9 @@ export async function* summarizeStream(options: SummarizeOptions) {
   const fullText = subtitlesToPromptText(subtitles)
   const chunks = chunkSubtitles(subtitles, { maxTokens: SHORT_VIDEO_TOKEN_THRESHOLD, overlap: 300 })
 
-  const route = modelId ? { model: modelId, provider: "openai" as const } : routeModel(mode)
+  const route = modelId
+    ? { model: modelId, provider: (provider || "openai") as "openai" | "deepseek" }
+    : routeModel(mode)
   let currentRoute = route
   let aiModel = getModel(currentRoute.provider, currentRoute.model)
 

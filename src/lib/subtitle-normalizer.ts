@@ -7,8 +7,8 @@ import { SubtitleItem, Platform } from "@/types"
  * Normalize subtitles from any platform to standard format
  * - Removes HTML tags
  * - Normalizes whitespace
- * - Merges overlapping/adjacent lines
  * - Sorts by start time
+ * - Preserves each subtitle line individually (no merging)
  */
 export function normalizeSubtitles(
   items: SubtitleItem[],
@@ -26,24 +26,7 @@ export function normalizeSubtitles(
     .filter((item) => item.text.length > 0) // Remove empty text
     .sort((a, b) => a.start - b.start)
 
-  // 2. Merge consecutive lines with same text or very close timing
-  const merged: SubtitleItem[] = []
-  for (const item of cleaned) {
-    const last = merged[merged.length - 1]
-    if (last && last.end >= item.start - 0.2) {
-      // Extend previous item instead of creating new one
-      last.end = Math.max(last.end, item.end)
-      last.text = last.text + " " + item.text
-    } else {
-      merged.push({ ...item })
-    }
-  }
-
-  // 3. Trim whitespace in merged text
-  return merged.map((item) => ({
-    ...item,
-    text: item.text.trim(),
-  }))
+  return cleaned
 }
 
 /**
