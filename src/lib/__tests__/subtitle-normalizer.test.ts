@@ -23,11 +23,7 @@ describe("normalizeSubtitles", () => {
 
   it("removes HTML tags", () => {
     const input = [
-      {
-        start: 0,
-        end: 5,
-        text: "<b>Hello</b> <i>world</i>",
-      },
+      { start: 0, end: 5, text: "<b>Hello</b> <i>world</i>" },
     ]
     const result = normalizeSubtitles(input)
     expect(result[0].text).toBe("Hello world")
@@ -35,24 +31,21 @@ describe("normalizeSubtitles", () => {
 
   it("decodes HTML entities", () => {
     const input = [
-      {
-        start: 0,
-        end: 5,
-        text: "A &amp; B &lt; C &gt; D",
-      },
+      { start: 0, end: 5, text: "A &amp; B &lt; C &gt; D" },
     ]
     const result = normalizeSubtitles(input)
     expect(result[0].text).toBe("A & B < C > D")
   })
 
-  it("merges adjacent lines", () => {
+  it("preserves individual subtitle lines (no merging)", () => {
     const input = [
       { start: 0, end: 2, text: "Hello" },
       { start: 1.9, end: 4, text: "world" },
     ]
     const result = normalizeSubtitles(input)
-    expect(result.length).toBe(1)
-    expect(result[0].text).toBe("Hello world")
+    expect(result.length).toBe(2)
+    expect(result[0].text).toBe("Hello")
+    expect(result[1].text).toBe("world")
   })
 
   it("filters empty text items", () => {

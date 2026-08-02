@@ -32,6 +32,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# Prisma temp
+.prisma-tmp/
+
+# test
+test-results/
 
 # vercel
 .vercel
@@ -41,3 +48,5 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+.vercel

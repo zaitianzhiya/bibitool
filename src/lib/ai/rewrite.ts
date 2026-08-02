@@ -1,9 +1,19 @@
 // AI article rewrite — converts video summary into narrative article
 // Uses LLM to generate a well-structured, readable article from subtitles + summary
+// Supports multi-provider via stored API keys
 
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
+import { deepseek } from "@ai-sdk/deepseek"
 import { SubtitleItem } from "@/types"
+
+function getArticleModel() {
+  // Use DeepSeek if configured, otherwise fall back to OpenAI
+  if (process.env.DEEPSEEK_API_KEY) {
+    return deepseek("deepseek-chat")
+  }
+  return openai("gpt-4o-mini")
+}
 
 /**
  * Rewrite video subtitles + summary into a narrative article.
@@ -33,7 +43,7 @@ ${summary ? `AI 总结参考：\n${summary}\n\n` : ""}
 ${subtitleText}`
 
   const result = await generateText({
-    model: openai("gpt-4o-mini"),
+    model: getArticleModel(),
     prompt,
     maxOutputTokens: 2000,
     temperature: 0.5,

@@ -47,7 +47,13 @@ export async function POST(request: NextRequest) {
   }
 
   const ok = await setApiKey(session.user.id, provider, key)
-  return NextResponse.json({ ok })
+  if (!ok) {
+    return NextResponse.json(
+      { ok: false, error: { code: "SAVE_FAILED", message: "保存失败，加密或数据库异常" } },
+      { status: 500 }
+    )
+  }
+  return NextResponse.json({ ok: true })
 }
 
 export async function DELETE(request: NextRequest) {
@@ -72,5 +78,11 @@ export async function DELETE(request: NextRequest) {
   }
 
   const ok = await deleteApiKey(session.user.id, provider as "openai" | "deepseek" | "anthropic")
-  return NextResponse.json({ ok })
+  if (!ok) {
+    return NextResponse.json(
+      { ok: false, error: { code: "DELETE_FAILED", message: "删除失败" } },
+      { status: 500 }
+    )
+  }
+  return NextResponse.json({ ok: true })
 }

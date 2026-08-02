@@ -45,12 +45,8 @@ function getCipherKeyIv(): { key: Buffer; iv: Buffer } {
 export function encryptKey(plaintext: string): string | null {
   try {
     const { key, iv } = getCipherKeyIv()
-    const cipher = (null as unknown as typeof import("crypto")).createCipheriv;
-    const c = (require("crypto") as typeof import("crypto")).createCipheriv(
-      "aes-256-cbc",
-      key,
-      iv
-    )
+    const { createCipheriv } = require("crypto")
+    const c = createCipheriv("aes-256-cbc", key, iv)
     let encrypted = c.update(plaintext, "utf8", "hex")
     encrypted += c.final("hex")
     return encrypted
@@ -62,11 +58,8 @@ export function encryptKey(plaintext: string): string | null {
 export function decryptKey(encrypted: string): string | null {
   try {
     const { key, iv } = getCipherKeyIv()
-    const d = (require("crypto") as typeof import("crypto")).createDecipheriv(
-      "aes-256-cbc",
-      key,
-      iv
-    )
+    const { createDecipheriv } = require("crypto")
+    const d = createDecipheriv("aes-256-cbc", key, iv)
     let decrypted = d.update(encrypted, "hex", "utf8")
     decrypted += d.final("utf8")
     return decrypted
@@ -203,7 +196,7 @@ export async function testProviderConnection(
           : { ok: false, message: `OpenAI 返回 ${res.status}` }
       }
       case "deepseek": {
-        const res = await fetch("https://api.deepseek.com/v1/models", {
+        const res = await fetch("https://api.deepseek.com/models", {
           headers: { Authorization: `Bearer ${apiKey}` },
           signal: AbortSignal.timeout(8000),
         })

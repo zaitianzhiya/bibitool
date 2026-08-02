@@ -83,20 +83,37 @@ describe("transcribeAudio", () => {
   it("throws when OPENAI_API_KEY is not configured", async () => {
     delete process.env.OPENAI_API_KEY
 
+    // Without OpenAI key, falls through to Hugging Face API
+    // Mock HF to return an error
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: vi.fn().mockResolvedValue("Service Unavailable"),
+    })
+
     await expect(transcribeAudio(makeAudioBuffer())).rejects.toThrow(
-      "OPENAI_API_KEY is not configured"
+      "Hugging Face API error"
     )
   })
 
   it("throws when file exceeds 25MB limit", async () => {
     const largeBuffer = new ArrayBuffer(26 * 1024 * 1024) // 26MB
 
+    // OpenAI throws 25MB error → caught → falls to HF
+    // Mock HF to also fail (large file warning is logged, not thrown)
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 413,
+      text: vi.fn().mockResolvedValue("Payload Too Large"),
+    })
+
     await expect(transcribeAudio(largeBuffer)).rejects.toThrow(
-      "Whisper API limit is 25MB"
+      "Hugging Face API error"
     )
   })
 
   it("throws on API error responses", async () => {
+    // OpenAI fails → caught → falls to HF → HF also fails
     mockFetch.mockResolvedValue({
       ok: false,
       status: 401,
@@ -104,7 +121,7 @@ describe("transcribeAudio", () => {
     })
 
     await expect(transcribeAudio(makeAudioBuffer())).rejects.toThrow(
-      "Whisper API error (401)"
+      "Hugging Face API error (401)"
     )
   })
 

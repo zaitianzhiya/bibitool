@@ -5,10 +5,32 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { resolveVideo } from "@/lib/platforms"
+import { auth } from "@/lib/auth"
+import { resolveApiKey } from "@/lib/api-keys"
 import { getSubtitleStats } from "@/lib/subtitle-normalizer"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const session = await auth()
+    const ip = getClientIp(request)
+    const rateLimit = await checkRateLimit(session?.user?.id, ip)
+    if (rateLimit) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "RATE_LIMITED",
+            message: `请求过于频繁，请 ${rateLimit.retryAfter} 秒后重试`,
+          },
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rateLimit.retryAfter) },
+        }
+      )
+    }
+
     const body = await request.json()
     const { url } = body
 
@@ -36,6 +58,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve video (platform detection, subtitle extraction, cache)
+    // If user has stored OpenAI API key, make it available for Whisper
+    const storedKey = await resolveApiKey(session?.user?.id, "openai")
+    if (storedKey) process.env.OPENAI_API_KEY = storedKey
+
     const videoInfo = await resolveVideo(parsed.href)
 
     const stats = videoInfo.subtitles

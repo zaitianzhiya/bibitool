@@ -16,13 +16,20 @@ let cached: PrismaClient | undefined
 function getClient(): PrismaClient {
   if (globalForPrisma.prisma) return globalForPrisma.prisma
 
-  if (!process.env.DATABASE_URL) {
+  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING
+  if (!databaseUrl) {
     throw new Error(
-      "DATABASE_URL is not set. Copy .env.example to .env.local and configure your database."
+      "DATABASE_URL or POSTGRES_URL_NON_POOLING is not set."
     )
   }
 
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
+  // Supabase requires SSL/TLS, but its cert chain has self-signed CAs.
+  // Replace sslmode=require with no-verify to reject unauthorized errors.
+  const fixedUrl = databaseUrl.includes("sslmode=")
+    ? databaseUrl.replace(/sslmode=require/, "sslmode=no-verify")
+    : databaseUrl + (databaseUrl.includes("localhost") ? "" : "?sslmode=no-verify")
+
+  const pool = new pg.Pool({ connectionString: fixedUrl })
   const adapter = new PrismaPg(pool)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

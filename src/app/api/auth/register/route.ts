@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         name: (name as string) || email!.split("@")[0],
         email: email as string,
         password: hashedPassword,
-        credits: 120, // Free trial
+        credits: 7200, // 120 minutes in seconds (free trial)
       },
     })
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error("Registration error:", err)
+    console.error("Registration error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "")
     return NextResponse.json(
       { error: { code: "SERVER_ERROR", message: "注册失败，请稍后重试" } },
       { status: 500 }
