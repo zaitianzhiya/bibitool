@@ -35,6 +35,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Inject user's stored keys for article rewrite
+    if (session?.user?.id) {
+      const providers = ["openai", "deepseek", "anthropic"] as const
+      const envMap = { openai: "OPENAI_API_KEY", deepseek: "DEEPSEEK_API_KEY", anthropic: "ANTHROPIC_API_KEY" }
+      const { resolveApiKey } = await import("@/lib/api-keys")
+      for (const p of providers) {
+        const key = await resolveApiKey(session.user.id, p)
+        if (key) process.env[envMap[p]] = key
+      }
+    }
+
     // Get subtitles from Phase 2 pipeline
     const videoInfo = await resolveVideo(url)
 
