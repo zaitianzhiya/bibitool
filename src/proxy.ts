@@ -1,7 +1,8 @@
-// Auth middleware — protects routes that require authentication
+// Auth proxy — protects routes that require authentication
 //
-// This middleware runs on the Edge Runtime, so it CANNOT import Prisma or any
-// Node.js module. It uses JWT token verification only (via getToken).
+// This proxy runs on the Node.js runtime (Next.js 16 default), so it CANNOT
+// import Prisma or any Node.js module. It uses JWT token verification only
+// (via getToken).
 //
 // Protected routes:
 //   /dashboard, /history, /api/summarize
@@ -13,7 +14,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protected route definitions
@@ -57,7 +58,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
-// Only run middleware on protected paths
+// Only run proxy on protected paths
 export const config = {
   matcher: [
     "/dashboard/:path*",

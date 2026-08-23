@@ -448,7 +448,7 @@ export default function SummarizePage() {
             粘贴视频链接开始
           </h2>
           <p className="mt-2 text-sm text-zinc-500 max-w-md mx-auto">
-            支持 B站、YouTube 等主流视频平台。粘贴链接后点击"提取字幕"，
+            支持 B站、YouTube 等主流视频平台。粘贴链接后点击&ldquo;提取字幕&rdquo;，
             AI 将自动生成结构化总结、思维导图和章节导航。
           </p>
         </div>

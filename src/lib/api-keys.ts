@@ -5,7 +5,7 @@
 // Supported providers: openai, deepseek, anthropic
 
 import { prisma } from "@/lib/db"
-import { createHmac, randomBytes } from "crypto"
+import { createHmac, createCipheriv, createDecipheriv } from "crypto"
 
 type Provider = "openai" | "deepseek" | "anthropic"
 
@@ -45,7 +45,6 @@ function getCipherKeyIv(): { key: Buffer; iv: Buffer } {
 export function encryptKey(plaintext: string): string | null {
   try {
     const { key, iv } = getCipherKeyIv()
-    const { createCipheriv } = require("crypto")
     const c = createCipheriv("aes-256-cbc", key, iv)
     let encrypted = c.update(plaintext, "utf8", "hex")
     encrypted += c.final("hex")
@@ -58,7 +57,6 @@ export function encryptKey(plaintext: string): string | null {
 export function decryptKey(encrypted: string): string | null {
   try {
     const { key, iv } = getCipherKeyIv()
-    const { createDecipheriv } = require("crypto")
     const d = createDecipheriv("aes-256-cbc", key, iv)
     let decrypted = d.update(encrypted, "hex", "utf8")
     decrypted += d.final("utf8")

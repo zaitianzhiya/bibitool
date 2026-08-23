@@ -106,6 +106,7 @@ export default function HistoryPage() {
   }, [search, platform])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount
     fetchHistory(1)
   }, [fetchHistory])
 

@@ -1,0 +1,15 @@
+# Vercel should only deploy the Next.js app — NOT these big local dirs
+# Whisper-WebUI is 15GB (venv + gradio), ffmpeg is 304MB. They are git-ignored
+# but vercel deploy bundles the whole working dir, so excluding them here is
+# what actually keeps the deployment under Vercel's size limit.
+.env
+.env.local
+.env.*
+*.local
+.git
+node_modules
+.next
+Whisper-WebUI
+ffmpeg
+Bilibili视频总结
+BibiTool-部署指南.md
